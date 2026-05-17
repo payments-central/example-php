@@ -1,0 +1,16 @@
+{
+    "name": "payments-central/example-php",
+    "description": "Payments Central API demo application",
+    "type": "project",
+    "require": {
+        "php": ">=8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "PaymentsCentral\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
