@@ -1,0 +1,30 @@
+name: CI Smoke
+
+# Thin smoke test so future Payments Central API changes break this example
+# loudly. Runs the demo app against a recorded mock of the core API that
+# asserts every request matches the current contract — no secrets required.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+          extensions: curl, json
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Run smoke (charge -> list -> get -> refund -> checkout)
+        run: bash smoke/run.sh

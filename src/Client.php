@@ -104,18 +104,23 @@ class Client
     /**
      * List transactions.
      *
+     * The core API paginates with `page` (1-based) and `limit`; an `offset`
+     * parameter is silently ignored. Response shape: { data, total, page, limit }.
+     *
      * @return array<string, mixed>
      */
-    public function listTransactions(int $limit = 10, int $offset = 0): array
+    public function listTransactions(int $page = 1, int $limit = 10): array
     {
-        $query = http_build_query(compact('limit', 'offset'));
+        $query = http_build_query(compact('page', 'limit'));
         return $this->request('GET', '/api/v1/transactions?' . $query);
     }
 
     /**
      * Refund a transaction (fully or partially).
      *
-     * Optional key: amount (omit for full refund). Required key: reason.
+     * The core API requires an `amount` (in minor units / cents); there is no
+     * "omit amount for full refund" behaviour — pass the original transaction
+     * amount for a full refund. Any `reason` is accepted but ignored by core.
      *
      * @param array<string, mixed> $params
      * @return array<string, mixed>

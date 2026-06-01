@@ -75,6 +75,14 @@ pc-example-php/
 
 ---
 
+## Continuous Integration
+
+A smoke test (`bash smoke/run.sh`) drives the demo through the full flow —
+charge → list → get → refund → checkout — against a recorded mock of the core
+API that asserts every request matches the current contract. It needs no
+credentials, so it runs in CI on every push/PR (`.github/workflows/ci-smoke.yml`)
+and fails loudly if the example ever drifts from the API.
+
 ## Further Reading
 
 Full API reference and authentication guide: **https://developer.payments-central.com**

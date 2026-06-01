@@ -205,7 +205,7 @@ if (route('POST', '/demo/charge')) {
 // GET /demo/transactions
 if (route('GET', '/demo/transactions')) {
     try {
-        $result       = $client->listTransactions(limit: 10, offset: 0);
+        $result       = $client->listTransactions(page: 1, limit: 10);
         $transactions = $result['data'] ?? $result['transactions'] ?? $result;
 
         $rows = '';
@@ -277,7 +277,14 @@ if (route('POST', '/demo/refund')) {
         exit;
     }
     try {
-        $result = $client->refund($id, ['reason' => 'requested_by_customer']);
+        // core requires an explicit refund `amount` (minor units); fetch the
+        // transaction first so we can issue a full refund for its amount.
+        $tx     = $client->getTransaction($id);
+        $amount = (int) ($tx['amount'] ?? 0);
+        $result = $client->refund($id, [
+            'amount' => $amount,
+            'reason' => 'requested_by_customer',
+        ]);
         $body   = '<div class="card"><h2>Refund Result</h2>'
                 . '<div class="notice notice-success">Refund submitted for transaction ' . htmlspecialchars($id) . '.</div>'
                 . jsonBlock($result)
@@ -300,6 +307,7 @@ if (route('POST', '/demo/checkout')) {
         $result = $client->createCheckoutSession([
             'amount'      => 2500,                        // $25.00 in cents
             'currency'    => 'USD',
+            'gateway'     => 'stripe',                    // core requires a gateway
             'description' => 'PHP demo checkout',
             'success_url' => $baseAppUrl . '/demo/success',
             'cancel_url'  => $baseAppUrl . '/demo/cancel',
