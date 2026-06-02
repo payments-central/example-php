@@ -277,10 +277,14 @@ if (route('POST', '/demo/refund')) {
         exit;
     }
     try {
-        // core requires an explicit refund `amount` (minor units); fetch the
-        // transaction first so we can issue a full refund for its amount.
-        $tx     = $client->getTransaction($id);
-        $amount = (int) ($tx['amount'] ?? 0);
+        // A fresh charge is `pending`, and core only refunds captured/settled
+        // transactions ("Can only refund captured or settled transactions").
+        // Drive the full lifecycle: charge -> authorize -> capture -> refund.
+        $client->authorize($id);
+        $captured = $client->capture($id);
+        // core requires an explicit refund `amount` (minor units); refund the
+        // full captured amount.
+        $amount = (int) ($captured['amount'] ?? 0);
         $result = $client->refund($id, [
             'amount' => $amount,
             'reason' => 'requested_by_customer',

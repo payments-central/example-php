@@ -15,6 +15,12 @@ declare(strict_types=1);
 $failFile = getenv('SMOKE_FAIL_FILE') ?: sys_get_temp_dir() . '/php-smoke-failures.txt';
 $mockPort = getenv('MOCK_PORT') ?: '4021';
 
+// php -S runs each request in a fresh process, so lifecycle ordering
+// (charge -> authorize -> capture -> refund) is tracked with marker files
+// derived from the per-run fail file. run.sh cleans these between runs.
+$authorizeMarker = $failFile . '.authorized';
+$captureMarker   = $failFile . '.captured';
+
 function fail(string $message): void
 {
     global $failFile;
@@ -93,7 +99,31 @@ if ($method === 'GET' && preg_match('#^/api/v1/transactions/[^/]+$#', $uri)) {
     exit;
 }
 
+// pending -> authorized. `gateway_ref` is optional (core mints one).
+if ($method === 'POST' && preg_match('#^/api/v1/transactions/[^/]+/authorize$#', $uri)) {
+    file_put_contents($authorizeMarker, '1');
+    echo json_encode(array_merge($tx, ['status' => 'authorized']));
+    exit;
+}
+
+// authorized -> captured. core captures the full authorized amount.
+if ($method === 'POST' && preg_match('#^/api/v1/transactions/[^/]+/capture$#', $uri)) {
+    if (!file_exists($authorizeMarker)) {
+        fail('capture: must be preceded by an authorize call');
+    }
+    file_put_contents($captureMarker, '1');
+    echo json_encode(array_merge($tx, ['status' => 'captured']));
+    exit;
+}
+
 if ($method === 'POST' && preg_match('#^/api/v1/transactions/[^/]+/refund$#', $uri)) {
+    // core only refunds captured/settled tx, so the example MUST authorize+capture first.
+    if (!file_exists($authorizeMarker)) {
+        fail('refund: must be preceded by an authorize call (charge -> authorize -> capture -> refund)');
+    }
+    if (!file_exists($captureMarker)) {
+        fail('refund: must be preceded by a capture call (core only refunds captured/settled transactions)');
+    }
     if (!isset($body['amount']) || !is_numeric($body['amount'])) {
         fail('refund: core requires a numeric `amount`');
     }

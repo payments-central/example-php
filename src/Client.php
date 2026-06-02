@@ -116,6 +116,35 @@ class Client
     }
 
     /**
+     * Authorize a pending transaction (pending -> authorized).
+     *
+     * A fresh charge is `pending`; core only refunds captured/settled
+     * transactions, so the charge must be authorized then captured first.
+     * `gateway_ref` is optional (core mints a sandbox reference when absent).
+     *
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
+     */
+    public function authorize(string $id, array $params = []): array
+    {
+        return $this->request('POST', '/api/v1/transactions/' . rawurlencode($id) . '/authorize', $params);
+    }
+
+    /**
+     * Capture an authorized transaction (authorized -> captured).
+     *
+     * core captures the full authorized amount; any `amount` passed is
+     * currently ignored by the capture route.
+     *
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
+     */
+    public function capture(string $id, array $params = []): array
+    {
+        return $this->request('POST', '/api/v1/transactions/' . rawurlencode($id) . '/capture', $params);
+    }
+
+    /**
      * Refund a transaction (fully or partially).
      *
      * The core API requires an `amount` (in minor units / cents); there is no

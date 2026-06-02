@@ -18,6 +18,8 @@ export MOCK_PORT
 FAIL_FILE="$(mktemp)"
 export SMOKE_FAIL_FILE="$FAIL_FILE"
 : > "$FAIL_FILE"
+# Clear any stale lifecycle markers (authorize/capture) from a prior run.
+rm -f "$FAIL_FILE".authorized "$FAIL_FILE".captured
 
 # Generate the PSR-4 autoloader the front controller requires.
 composer install --no-interaction --no-progress >/dev/null 2>&1 || composer dump-autoload >/dev/null 2>&1
@@ -36,7 +38,7 @@ APP_PID=$!
 
 cleanup() {
   kill "$MOCK_PID" "$APP_PID" >/dev/null 2>&1 || true
-  rm -f .env "$FAIL_FILE"
+  rm -f .env "$FAIL_FILE" "$FAIL_FILE".authorized "$FAIL_FILE".captured
 }
 trap cleanup EXIT
 
